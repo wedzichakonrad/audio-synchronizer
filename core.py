@@ -21,10 +21,10 @@ def has_audio_extension(path):
 
 @dataclass
 class Plan:
-    to_copy: list      # względne ścieżki: są na komputerze, brak na telefonie
-    extra: list        # względne ścieżki: są na telefonie, brak na komputerze
-    local_count: int
-    phone_count: int
+    to_copy: list      # względne ścieżki: są w źródle, brak w celu
+    extra: list        # względne ścieżki: są w celu, brak w źródle
+    source_count: int
+    target_count: int
 
 
 class Adb:
@@ -107,12 +107,20 @@ def list_local(root):
     return result
 
 
-def compare(adb, local_root, phone_root):
-    local = list_local(local_root)
-    phone = adb.list_files(phone_root)
+def make_plan(source, target):
     return Plan(
-        to_copy=sorted(local - phone),
-        extra=sorted(phone - local),
-        local_count=len(local),
-        phone_count=len(phone),
+        to_copy=sorted(source - target),
+        extra=sorted(target - source),
+        source_count=len(source),
+        target_count=len(target),
     )
+
+
+def compare_local(source_root, target_root):
+    """Porównanie dwóch folderów na dysku komputera."""
+    return make_plan(list_local(source_root), list_local(target_root))
+
+
+def compare_with_phone(adb, local_root, phone_root):
+    """Porównanie folderu na komputerze z folderem na telefonie (przez ADB)."""
+    return make_plan(list_local(local_root), adb.list_files(phone_root))
