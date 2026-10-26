@@ -1,6 +1,6 @@
 # Audio Synchronizer
 
-A desktop app (Python + tkinter) for syncing music folders. It compares two
+A desktop fully vibe-coded app (Python + tkinter) for syncing music folders. It compares two
 places, shows which files are missing from the target and which files in it are
 extra, and then lets you **decide what to do with them**: copy the missing ones
 and delete (or keep) the extra ones. It works in two ways:
@@ -11,15 +11,11 @@ and delete (or keep) the extra ones. It works in two ways:
 The comparison is **one-way**: the source folder (on the computer) is the
 reference, and the program checks whether the target looks the same.
 
-> Note: the app's interface is currently in Polish. The English names of the
-> buttons below are followed by the original label in parentheses.
-
 ## Features
 
 - compares folders including subfolders (`.mp3`, `.m4a`, `.mp4` files),
-- shows the result in two tabs: **To copy** (*Do skopiowania*) and
-  **Extra** (*Nadmiarowe*),
-- lets you check exactly the files the action should apply to,
+- shows the result in two tabs: **To copy** and **Extra**,
+- lets you check exactly the files an action should apply to,
 - copies the checked files from the source to the target (with a progress bar),
 - deletes the checked extra files from the target (after confirmation),
 - doesn't stop on a single file's error: it collects the errors and shows them at the end,
@@ -27,8 +23,8 @@ reference, and the program checks whether the target looks the same.
 
 ### Safety
 
-- The program **never changes anything on its own**: the comparison only reads files.
-- Files to copy are checked by default, while **extra files are not**
+- The program **never changes anything on its own**: comparing only reads files.
+- Files in **To copy** are checked by default, while files in **Extra** are not
   (so by default they stay).
 - Deleting always asks for confirmation, and the default answer is "No".
 - **Deleting is irreversible**: files don't go to the recycle bin. Try the
@@ -110,9 +106,9 @@ Download **SDK Platform-Tools for Windows** from the Android developer site
 Note that after extracting, `adb.exe` is usually inside a `platform-tools`
 subfolder.
 
-In the app you point to `adb.exe` with the browse button (*Wybierz...*) next to
-the ADB field. Alternatively, add the `platform-tools` folder to your `PATH`
-environment variable, and then the default value `adb` is enough.
+In the app, point to `adb.exe` with the **Browse...** button next to the ADB
+field. Alternatively, add the `platform-tools` folder to your `PATH` environment
+variable, and then the default value `adb` is enough.
 
 ### Enable USB debugging on the phone
 
@@ -136,21 +132,20 @@ Some phones (e.g. Samsung) may additionally need the manufacturer's USB driver.
 
 1. Pick a mode: **Computer → phone** or **Two folders on the computer**.
 2. In phone mode, point to `adb.exe`.
-3. Choose the **source folder** on the computer.
-4. Choose the **target**:
-   - phone mode: the browse button opens the phone folder browser (internal
-     storage and SD card). Double-click to enter folders and confirm with
-     **Select this folder** (*Wybierz ten folder*),
+3. Choose the **source folder** (*Folder on computer* / *Source folder*).
+4. Choose the **target** (*Folder on phone* / *Folder to compare*):
+   - phone mode: **Browse...** opens the phone folder browser (internal
+     storage and SD card). Double-click to enter folders, use **Up** to go
+     back, and confirm with **Select this folder**,
    - two-folder mode: a regular folder picker dialog.
-5. Click **Compare** (*Porównaj*). Two tabs with file lists appear below, and
-   the status bar shows a summary.
+5. Click **Compare**. Two tabs with file lists appear below, and the status bar
+   shows a summary.
 6. **To copy**: all files are checked by default. Uncheck the ones you don't want
    to copy (click the ☑/☐ box, or press space on the selected row) and click
-   **Copy selected** (*Skopiuj zaznaczone*).
+   **Copy selected**.
 7. **Extra**: nothing is checked, so everything stays. Check the files you want
-   to remove, click **Delete selected** (*Usuń zaznaczone*) and confirm.
-   The **Select all** (*Zaznacz wszystko*) and **Deselect all**
-   (*Odznacz wszystko*) buttons help with long lists.
+   to remove, click **Delete selected** and confirm. The **Select all** and
+   **Deselect all** buttons help with long lists.
 8. After an action the lists refresh by themselves, so you immediately see what
    is left to do. If any file failed, you'll see a list of errors.
 
@@ -224,11 +219,11 @@ in a separate thread so the window doesn't freeze.
 
 | Symptom | What to check |
 |---|---|
-| `Nie znaleziono ADB pod ścieżką: ...` (ADB not found) | Point to `adb.exe` in the ADB field or add `platform-tools` to `PATH`. |
-| "No authorized phone detected" (Polish: `Nie wykryto autoryzowanego telefonu`) | Connect the phone, unlock the screen, accept the USB debugging prompt. |
+| `ADB not found at: ...` | Point to `adb.exe` in the ADB field or add `platform-tools` to `PATH`. |
+| "No authorized phone detected" | Connect the phone, unlock the screen, accept the USB debugging prompt. |
 | `adb devices` shows an empty list | Check the cable (it must carry data), that USB debugging is on, and the manufacturer's driver. |
 | `adb devices` shows `unauthorized` | Accept the prompt on the phone. If needed: `adb kill-server`, and in Developer options use "Revoke USB debugging authorizations". |
-| "Some operations failed" dialog (Polish: `Część operacji się nie powiodła`) | Read the error list. Most often it's no free space on the card, the cable unplugged mid-copy, or a file name containing a character the target file system doesn't allow. After fixing the cause, compare again: the list will show only what's left. |
+| "Some operations failed" dialog | Read the error list. Most often it's no free space on the card, the cable unplugged mid-copy, or a file name containing a character the target file system doesn't allow. After fixing the cause, compare again: the lists will show only what's left. |
 | `ModuleNotFoundError` | Run `main.py` from the project folder and check that `__init__.py` files exist in `audio_sync/`, `audio_sync/storage/` and `ui/`. |
 | `python` opens the Microsoft Store | Turn on the app alias in *Settings → Apps → Advanced app settings → App execution aliases*, or use `py` instead. |
 
@@ -244,6 +239,4 @@ in a separate thread so the window doesn't freeze.
   (closing the window stops it, but the current file may be left unfinished).
 - Settings (paths, ADB location) aren't remembered between runs yet.
 
-## License
 
-To be added (e.g. MIT).
