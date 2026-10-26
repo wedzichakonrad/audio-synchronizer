@@ -1,135 +1,138 @@
 # Audio Synchronizer
 
-Aplikacja okienkowa (Python + tkinter) do porównywania folderów z muzyką.
-Pokazuje, których plików brakuje w folderze docelowym i które pliki są w nim
-nadmiarowe. Działa na dwa sposoby:
+A desktop app (Python + tkinter) for comparing music folders. It shows which
+files are missing from the target folder and which files in it are extra.
+It works in two ways:
 
-- **Komputer → telefon z Androidem** (przez kabel USB i ADB),
-- **dwa foldery na komputerze**.
+- **Computer → Android phone** (over a USB cable, using ADB),
+- **two folders on the computer**.
 
-Porównanie jest **jednokierunkowe**: folder źródłowy (na komputerze) jest wzorcem,
-a program sprawdza, czy cel wygląda tak samo.
+The comparison is **one-way**: the source folder (on the computer) is the
+reference, and the program checks whether the target looks the same.
 
-> **Stan projektu:** aktualnie aplikacja porównuje foldery i pokazuje liczbę
-> brakujących i nadmiarowych plików. Kopiowanie brakujących plików oraz pytanie,
-> co zrobić z nadmiarowymi (usunąć / zostawić), jest w trakcie budowy.
-> Warstwa logiki (`audio_sync`) ma już gotowe operacje kopiowania i usuwania,
-> brakuje tylko ich podpięcia w interfejsie.
+> **Project status:** the app currently compares folders and shows the number
+> of missing and extra files. Copying the missing files and asking what to do
+> with the extra ones (delete / keep) is still under construction. The logic
+> layer (`audio_sync`) already has the copy and delete operations; they just
+> aren't wired into the interface yet.
+>
+> Note: the app's interface is currently in Polish.
 
-## Jak to działa
+## How it works
 
-1. Program wylistuje pliki audio (`.mp3`, `.m4a`, `.mp4`) w obu miejscach,
-   razem z podfolderami.
-2. Dla każdego pliku zapamiętuje jego **ścieżkę względną** względem wybranego
-   folderu głównego, np. `ROCK/Zespół/Utwór.mp3`. Dzięki temu da się porównać
-   foldery leżące w zupełnie różnych miejscach.
-3. Porównuje dwa zbiory ścieżek (odejmowanie zbiorów):
-   - **do skopiowania** = jest w źródle, brak w celu,
-   - **nadmiarowe** = jest w celu, brak w źródle.
-4. Pliki rozpoznaje **tylko po nazwie i położeniu**, nie po zawartości ani dacie.
-   Dla biblioteki muzycznej, w której pliki po dodaniu się nie zmieniają, to
-   w zupełności wystarcza i jest bardzo szybkie.
+1. The program lists the audio files (`.mp3`, `.m4a`, `.mp4`) in both places,
+   including subfolders.
+2. For each file it keeps the **relative path** from the chosen root folder,
+   e.g. `ROCK/Band/Song.mp3`. This makes it possible to compare folders that
+   live in completely different locations.
+3. It compares the two sets of paths (set subtraction):
+   - **to copy** = in the source, missing from the target,
+   - **extra** = in the target, missing from the source.
+4. Files are matched **by name and location only**, not by content or
+   modification date. For a music library, where files don't change after
+   they're added, that is plenty and very fast.
 
-Telefon jest obsługiwany przez **ADB** (Android Debug Bridge), a nie przez zwykły
-Eksplorator. Eksplorator widzi telefon przez protokół MTP, który nie jest
-prawdziwym dyskiem i nie da się go otworzyć z poziomu Pythona. Dlatego aplikacja
-ma własną przeglądarkę folderów telefonu.
+The phone is accessed through **ADB** (Android Debug Bridge), not through the
+regular file explorer. Windows Explorer sees the phone over the MTP protocol,
+which isn't a real drive and can't be opened from Python. That's why the app
+has its own phone folder browser.
 
-## Wymagania
+## Requirements
 
-- **Windows 10 / 11** (aplikacja korzysta z elementów specyficznych dla Windowsa)
-- **Python 3.9 lub nowszy** (testowane na 3.11) z biblioteką tkinter. Tkinter jest
-  wbudowany w standardowe instalatory Pythona (python.org oraz Microsoft Store),
-  żadne dodatkowe pakiety nie są potrzebne.
-- **Git** (do pobrania repozytorium)
-- Tylko do trybu telefonu:
-  - telefon z **Androidem** i kabel USB, który przesyła dane (nie tylko ładuje),
-  - **Android SDK Platform-Tools** (zawiera `adb.exe`).
+- **Windows 10 / 11** (the app uses Windows-specific features)
+- **Python 3.9 or newer** (tested on 3.11) with tkinter. Tkinter is bundled with
+  the standard Python installers (python.org and the Microsoft Store), and no
+  extra packages are needed.
+- **Git** (to clone the repository)
+- Phone mode only:
+  - an **Android** phone and a USB cable that carries data (not charge-only),
+  - **Android SDK Platform-Tools** (contains `adb.exe`).
 
-## Instalacja
+## Installation
 
-### 1. Pobierz repozytorium
+### 1. Clone the repository
 
 ```powershell
-git clone https://github.com/<twoja-nazwa>/audio-synchronizer-gui.git
+git clone https://github.com/<your-username>/audio-synchronizer-gui.git
 cd audio-synchronizer-gui
 ```
 
-### 2. Utwórz wirtualne środowisko
+### 2. Create a virtual environment
 
 ```powershell
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-Jeśli PowerShell odmówi uruchomienia skryptu (execution policy), wpisz raz:
+If PowerShell refuses to run the script (execution policy), run this once:
 
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
 
-i powtórz aktywację. Projekt nie ma zewnętrznych zależności, więc nie ma czego
-instalować przez `pip`. Środowisko wirtualne to tylko dobra praktyka.
+and activate again. The project has no external dependencies, so there is
+nothing to install with `pip`. The virtual environment is just good practice.
 
-### 3. Uruchom
+### 3. Run
 
 ```powershell
 py main.py
 ```
 
-Tryb **dwóch folderów na komputerze** działa od razu. Do trybu telefonu potrzebna
-jest jeszcze konfiguracja z kolejnej sekcji.
+**Two folders on the computer** mode works right away. Phone mode needs the
+setup described in the next section.
 
-## Konfiguracja telefonu (tryb Komputer → telefon)
+## Phone setup (Computer → phone mode)
 
-### Pobierz ADB
+### Get ADB
 
-Pobierz **SDK Platform-Tools for Windows** ze strony Androida
-(wyszukaj: *android platform-tools download*) i rozpakuj do wybranego folderu.
-Zwróć uwagę, że po rozpakowaniu `adb.exe` leży zwykle w podfolderze
-`platform-tools`.
+Download **SDK Platform-Tools for Windows** from the Android developer site
+(search for: *android platform-tools download*) and extract it to any folder.
+Note that after extracting, `adb.exe` is usually inside a `platform-tools`
+subfolder.
 
-W aplikacji wskażesz plik `adb.exe` przyciskiem **Wybierz...** przy polu ADB.
-Możesz też dodać folder `platform-tools` do zmiennej środowiskowej `PATH`,
-wtedy wystarczy domyślna wartość `adb`.
+In the app you point to `adb.exe` with the browse button next to the ADB field.
+Alternatively, add the `platform-tools` folder to your `PATH` environment
+variable, and then the default value `adb` is enough.
 
-### Włącz debugowanie USB na telefonie
+### Enable USB debugging on the phone
 
-1. *Ustawienia → Informacje o telefonie → Informacje o oprogramowaniu*
-   i stuknij 7 razy w **Numer kompilacji** (nazwy zależą od producenta).
-2. Wejdź w *Ustawienia → Opcje programisty* i włącz **Debugowanie USB**.
-3. Podłącz telefon kablem, odblokuj ekran i zaakceptuj okno
-   **„Zezwolić na debugowanie USB?"**.
-4. Sprawdź połączenie:
+1. Go to *Settings → About phone → Software information* and tap **Build number**
+   7 times (names vary by manufacturer).
+2. Open *Settings → Developer options* and turn on **USB debugging**.
+3. Connect the phone with a cable, unlock the screen and accept the
+   **"Allow USB debugging?"** prompt.
+4. Check the connection:
 
    ```powershell
    adb devices
    ```
 
-   Przy telefonie powinien być status `device` (a nie `unauthorized` ani pusta
-   lista).
+   The phone should show the status `device` (not `unauthorized` and not an
+   empty list).
 
-Na niektórych telefonach (np. Samsung) może być potrzebny dodatkowo sterownik
-producenta.
+Some phones (e.g. Samsung) may additionally need the manufacturer's USB driver.
 
-## Użycie
+## Usage
 
-1. Wybierz tryb: **Komputer → telefon** albo **Dwa foldery na komputerze**.
-2. W trybie telefonu wskaż `adb.exe`.
-3. Wybierz **folder źródłowy** na komputerze.
-4. Wybierz **cel**:
-   - tryb telefonu: przyciskiem **Wybierz...** otwierasz przeglądarkę folderów
-     telefonu (pamięć wewnętrzna i karta SD). Wchodzisz w foldery dwuklikiem,
-     a wybór zatwierdzasz przyciskiem **Wybierz ten folder**,
-   - tryb dwóch folderów: zwykły dialog wyboru folderu.
-5. Kliknij **Porównaj**. Wynik pojawi się w pasku statusu na dole okna.
+1. Pick a mode: **Computer → phone** or **Two folders on the computer**.
+2. In phone mode, point to `adb.exe`.
+3. Choose the **source folder** on the computer.
+4. Choose the **target**:
+   - phone mode: the browse button opens the phone folder browser (internal
+     storage and SD card). Double-click to enter folders and confirm with
+     **Select this folder**,
+   - two-folder mode: a regular folder picker dialog.
+5. Click the compare button. The result appears in the status bar at the
+   bottom of the window.
 
-Źródło i cel powinny wskazywać odpowiadające sobie foldery (np. oba główne
-foldery z muzyką), bo porównywane są ścieżki względne.
+The source and the target should point to corresponding folders (e.g. both
+top-level music folders), because relative paths are what gets compared.
 
-## Skrót na pulpicie (opcjonalnie)
+## Desktop shortcut (optional)
 
-Uruchamianie bez okna konsoli, przez `pythonw.exe` z wirtualnego środowiska:
+Launch without a console window, using `pythonw.exe` from the virtual
+environment:
 
 ```powershell
 $project = (Get-Location).Path
@@ -142,67 +145,67 @@ $lnk.WorkingDirectory = $project
 $lnk.Save()
 ```
 
-Uruchom to z głównego folderu projektu. Jeśli skrót nic nie otwiera, odpal
-`py main.py` w terminalu, żeby zobaczyć komunikat błędu.
+Run this from the project's root folder. If the shortcut opens nothing, run
+`py main.py` in a terminal to see the error message.
 
-Zamiast skrótu możesz zbudować samodzielny plik `.exe`:
+Instead of a shortcut you can build a standalone `.exe`:
 
 ```powershell
 pip install pyinstaller
 pyinstaller --noconsole --onefile --name AudioSynchronizer main.py
 ```
 
-Wynik znajdziesz w `dist\AudioSynchronizer.exe`.
+The result is in `dist\AudioSynchronizer.exe`.
 
-## Struktura projektu
+## Project structure
 
 ```
 audio-synchronizer-gui/
-├── main.py                    # punkt startowy
-├── audio_sync/                # logika, bez tkintera
-│   ├── adb.py                 # rozmowa z telefonem przez adb.exe
-│   ├── filters.py             # które pliki się liczą, normalizacja nazw
-│   ├── models.py              # Plan: wynik porównania
+├── main.py                    # entry point
+├── audio_sync/                # logic, no tkinter
+│   ├── adb.py                 # talking to the phone via adb.exe
+│   ├── filters.py             # which files count, name normalization
+│   ├── models.py              # Plan: the comparison result
 │   ├── comparison.py          # compare(source, target)
 │   └── storage/
-│       ├── base.py            # interfejs Storage
-│       ├── local.py           # folder na dysku komputera
-│       └── phone.py           # folder na telefonie (ADB)
-└── ui/                        # tylko okienka
-    ├── app.py                 # główne okno
-    ├── path_row.py            # wiersz: opis + pole + przycisk
-    ├── phone_browser.py       # przeglądarka folderów telefonu
-    └── background.py          # praca w osobnym wątku
+│       ├── base.py            # the Storage interface
+│       ├── local.py           # a folder on the computer's disk
+│       └── phone.py           # a folder on the phone (ADB)
+└── ui/                        # windows only
+    ├── app.py                 # main window
+    ├── path_row.py            # row: label + field + button
+    ├── phone_browser.py       # phone folder browser
+    └── background.py          # running work in a separate thread
 ```
 
-Najważniejszy pomysł to interfejs **`Storage`**: „miejsce, w którym leżą pliki"
-ma trzy operacje (`list_files`, `put`, `delete`). Folder na dysku i telefon to
-dwie jego implementacje, więc porównanie nie musi wiedzieć, z czym pracuje.
-Dodanie nowego rodzaju celu (np. serwera FTP) to jeden nowy plik w
-`audio_sync/storage/`.
+The key idea is the **`Storage`** interface: "a place where files live" has
+three operations (`list_files`, `put`, `delete`). A folder on disk and a phone
+are two implementations of it, so the comparison doesn't need to know what it's
+working with. Adding a new kind of target (e.g. an FTP server) means adding one
+new file in `audio_sync/storage/`.
 
-Pakiet `audio_sync` nie importuje niczego z `ui`, dzięki czemu logikę można
-używać i testować bez okna.
+The `audio_sync` package imports nothing from `ui`, so the logic can be used
+and tested without a window.
 
-## Rozwiązywanie problemów
+## Troubleshooting
 
-| Objaw | Co sprawdzić |
+| Symptom | What to check |
 |---|---|
-| `Nie znaleziono ADB pod ścieżką: ...` | Wskaż `adb.exe` w polu ADB albo dodaj `platform-tools` do `PATH`. |
-| `Nie wykryto autoryzowanego telefonu` | Podłącz telefon, odblokuj ekran, zaakceptuj okno debugowania USB. |
-| `adb devices` pokazuje pustą listę | Sprawdź kabel (musi przesyłać dane), włączone debugowanie USB, sterownik producenta. |
-| `adb devices` pokazuje `unauthorized` | Zaakceptuj okno na telefonie. W razie potrzeby: `adb kill-server`, a w Opcjach programisty „Odwołaj autoryzacje debugowania USB". |
-| `ModuleNotFoundError` | Uruchamiaj `main.py` z folderu projektu i sprawdź, czy istnieją pliki `__init__.py` w `audio_sync/`, `audio_sync/storage/` i `ui/`. |
-| `python` otwiera Microsoft Store | Włącz alias aplikacji w *Ustawienia → Aplikacje → Zaawansowane ustawienia aplikacji → Aliasy wykonywania aplikacji*, albo używaj `py`. |
+| `Nie znaleziono ADB pod ścieżką: ...` (ADB not found) | Point to `adb.exe` in the ADB field or add `platform-tools` to `PATH`. |
+| "No authorized phone detected" (Polish: `Nie wykryto autoryzowanego telefonu`) | Connect the phone, unlock the screen, accept the USB debugging prompt. |
+| `adb devices` shows an empty list | Check the cable (it must carry data), that USB debugging is on, and the manufacturer's driver. |
+| `adb devices` shows `unauthorized` | Accept the prompt on the phone. If needed: `adb kill-server`, and in Developer options use "Revoke USB debugging authorizations". |
+| `ModuleNotFoundError` | Run `main.py` from the project folder and check that `__init__.py` files exist in `audio_sync/`, `audio_sync/storage/` and `ui/`. |
+| `python` opens the Microsoft Store | Turn on the app alias in *Settings → Apps → Advanced app settings → App execution aliases*, or use `py` instead. |
 
-## Ograniczenia
+## Limitations
 
-- Tylko Windows.
-- Porównanie po nazwach i ścieżkach, bez sprawdzania zawartości plików.
-- Rozpoznawane rozszerzenia: `.mp3`, `.m4a`, `.mp4` (lista w `audio_sync/filters.py`).
-- Folder źródłowy zawsze jest na komputerze, a porównanie idzie tylko w jedną stronę.
-- Ustawienia (ścieżki, lokalizacja ADB) nie są jeszcze zapamiętywane między uruchomieniami.
+- Windows only.
+- Comparison by names and paths, without checking file contents.
+- Recognized extensions: `.mp3`, `.m4a`, `.mp4` (the list is in `audio_sync/filters.py`).
+- The source folder is always on the computer, and the comparison only goes one way.
+- Settings (paths, ADB location) aren't remembered between runs yet.
 
-## Licencja
+## License
 
-Do uzupełnienia (np. MIT).
+To be added (e.g. MIT).
