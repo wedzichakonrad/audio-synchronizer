@@ -1,8 +1,9 @@
 # Audio Synchronizer
 
-A desktop app (Python + tkinter) for comparing music folders. It shows which
-files are missing from the target folder and which files in it are extra.
-It works in two ways:
+A desktop app (Python + tkinter) for syncing music folders. It compares two
+places, shows which files are missing from the target and which files in it are
+extra, and then lets you **decide what to do with them**: copy the missing ones
+and delete (or keep) the extra ones. It works in two ways:
 
 - **Computer → Android phone** (over a USB cable, using ADB),
 - **two folders on the computer**.
@@ -10,18 +11,32 @@ It works in two ways:
 The comparison is **one-way**: the source folder (on the computer) is the
 reference, and the program checks whether the target looks the same.
 
-> **Project status:** the app currently compares folders and shows the number
-> of missing and extra files. Copying the missing files and asking what to do
-> with the extra ones (delete / keep) is still under construction. The logic
-> layer (`audio_sync`) already has the copy and delete operations; they just
-> aren't wired into the interface yet.
->
-> Note: the app's interface is currently in Polish.
+> Note: the app's interface is currently in Polish. The English names of the
+> buttons below are followed by the original label in parentheses.
+
+## Features
+
+- compares folders including subfolders (`.mp3`, `.m4a`, `.mp4` files),
+- shows the result in two tabs: **To copy** (*Do skopiowania*) and
+  **Extra** (*Nadmiarowe*),
+- lets you check exactly the files the action should apply to,
+- copies the checked files from the source to the target (with a progress bar),
+- deletes the checked extra files from the target (after confirmation),
+- doesn't stop on a single file's error: it collects the errors and shows them at the end,
+- refreshes the lists by itself after every action.
+
+### Safety
+
+- The program **never changes anything on its own**: the comparison only reads files.
+- Files to copy are checked by default, while **extra files are not**
+  (so by default they stay).
+- Deleting always asks for confirmation, and the default answer is "No".
+- **Deleting is irreversible**: files don't go to the recycle bin. Try the
+  program on small test folders first.
 
 ## How it works
 
-1. The program lists the audio files (`.mp3`, `.m4a`, `.mp4`) in both places,
-   including subfolders.
+1. The program lists the audio files in both places, including subfolders.
 2. For each file it keeps the **relative path** from the chosen root folder,
    e.g. `ROCK/Band/Song.mp3`. This makes it possible to compare folders that
    live in completely different locations.
@@ -30,7 +45,11 @@ reference, and the program checks whether the target looks the same.
    - **extra** = in the target, missing from the source.
 4. Files are matched **by name and location only**, not by content or
    modification date. For a music library, where files don't change after
-   they're added, that is plenty and very fast.
+   they're added, that is plenty and very fast. The consequence: a file with the
+   same name but different content isn't treated as a difference and won't be updated.
+5. The checked files are copied or deleted one by one. For the phone this goes
+   through ADB (`adb push`, `rm`); for a folder on disk, through ordinary file
+   operations.
 
 The phone is accessed through **ADB** (Android Debug Bridge), not through the
 regular file explorer. Windows Explorer sees the phone over the MTP protocol,
@@ -91,9 +110,9 @@ Download **SDK Platform-Tools for Windows** from the Android developer site
 Note that after extracting, `adb.exe` is usually inside a `platform-tools`
 subfolder.
 
-In the app you point to `adb.exe` with the browse button next to the ADB field.
-Alternatively, add the `platform-tools` folder to your `PATH` environment
-variable, and then the default value `adb` is enough.
+In the app you point to `adb.exe` with the browse button (*Wybierz...*) next to
+the ADB field. Alternatively, add the `platform-tools` folder to your `PATH`
+environment variable, and then the default value `adb` is enough.
 
 ### Enable USB debugging on the phone
 
@@ -121,10 +140,19 @@ Some phones (e.g. Samsung) may additionally need the manufacturer's USB driver.
 4. Choose the **target**:
    - phone mode: the browse button opens the phone folder browser (internal
      storage and SD card). Double-click to enter folders and confirm with
-     **Select this folder**,
+     **Select this folder** (*Wybierz ten folder*),
    - two-folder mode: a regular folder picker dialog.
-5. Click the compare button. The result appears in the status bar at the
-   bottom of the window.
+5. Click **Compare** (*Porównaj*). Two tabs with file lists appear below, and
+   the status bar shows a summary.
+6. **To copy**: all files are checked by default. Uncheck the ones you don't want
+   to copy (click the ☑/☐ box, or press space on the selected row) and click
+   **Copy selected** (*Skopiuj zaznaczone*).
+7. **Extra**: nothing is checked, so everything stays. Check the files you want
+   to remove, click **Delete selected** (*Usuń zaznaczone*) and confirm.
+   The **Select all** (*Zaznacz wszystko*) and **Deselect all**
+   (*Odznacz wszystko*) buttons help with long lists.
+8. After an action the lists refresh by themselves, so you immediately see what
+   is left to do. If any file failed, you'll see a list of errors.
 
 The source and the target should point to corresponding folders (e.g. both
 top-level music folders), because relative paths are what gets compared.
@@ -167,6 +195,7 @@ audio-synchronizer-gui/
 │   ├── filters.py             # which files count, name normalization
 │   ├── models.py              # Plan: the comparison result
 │   ├── comparison.py          # compare(source, target)
+│   ├── actions.py             # copying and deleting the chosen files
 │   └── storage/
 │       ├── base.py            # the Storage interface
 │       ├── local.py           # a folder on the computer's disk
@@ -175,17 +204,21 @@ audio-synchronizer-gui/
     ├── app.py                 # main window
     ├── path_row.py            # row: label + field + button
     ├── phone_browser.py       # phone folder browser
-    └── background.py          # running work in a separate thread
+    ├── check_list.py          # file list with checkboxes
+    ├── results_view.py        # "To copy" and "Extra" tabs
+    └── background.py          # running work in a thread, with progress reports
 ```
 
 The key idea is the **`Storage`** interface: "a place where files live" has
 three operations (`list_files`, `put`, `delete`). A folder on disk and a phone
-are two implementations of it, so the comparison doesn't need to know what it's
-working with. Adding a new kind of target (e.g. an FTP server) means adding one
-new file in `audio_sync/storage/`.
+are two implementations of it, so the comparison, as well as copying and
+deleting (`actions.py`), don't need to know what they're working with. Adding
+a new kind of target (e.g. an FTP server) means adding one new file in
+`audio_sync/storage/`.
 
 The `audio_sync` package imports nothing from `ui`, so the logic can be used
-and tested without a window.
+and tested without a window. Long operations (comparing, copying, deleting) run
+in a separate thread so the window doesn't freeze.
 
 ## Troubleshooting
 
@@ -195,15 +228,20 @@ and tested without a window.
 | "No authorized phone detected" (Polish: `Nie wykryto autoryzowanego telefonu`) | Connect the phone, unlock the screen, accept the USB debugging prompt. |
 | `adb devices` shows an empty list | Check the cable (it must carry data), that USB debugging is on, and the manufacturer's driver. |
 | `adb devices` shows `unauthorized` | Accept the prompt on the phone. If needed: `adb kill-server`, and in Developer options use "Revoke USB debugging authorizations". |
+| "Some operations failed" dialog (Polish: `Część operacji się nie powiodła`) | Read the error list. Most often it's no free space on the card, the cable unplugged mid-copy, or a file name containing a character the target file system doesn't allow. After fixing the cause, compare again: the list will show only what's left. |
 | `ModuleNotFoundError` | Run `main.py` from the project folder and check that `__init__.py` files exist in `audio_sync/`, `audio_sync/storage/` and `ui/`. |
 | `python` opens the Microsoft Store | Turn on the app alias in *Settings → Apps → Advanced app settings → App execution aliases*, or use `py` instead. |
 
 ## Limitations
 
 - Windows only.
-- Comparison by names and paths, without checking file contents.
+- Comparison by names and paths, without checking file contents (a changed file
+  with the same name won't be updated).
 - Recognized extensions: `.mp3`, `.m4a`, `.mp4` (the list is in `audio_sync/filters.py`).
 - The source folder is always on the computer, and the comparison only goes one way.
+- Deleting is irreversible (no recycle bin).
+- A copy or delete that has started can't be cancelled with a button
+  (closing the window stops it, but the current file may be left unfinished).
 - Settings (paths, ADB location) aren't remembered between runs yet.
 
 ## License
