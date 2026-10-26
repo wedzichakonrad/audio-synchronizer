@@ -2,12 +2,14 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
+from audio_sync.actions import copy_files, delete_files
 from audio_sync.adb import Adb, AdbError
 from audio_sync.comparison import compare
 from audio_sync.storage import LocalStorage, PhoneStorage
 from ui.background import run_in_background
 from ui.path_row import PathRow
 from ui.phone_browser import PhoneBrowser
+from ui.results_view import ResultsView
 
 MODE_PHONE = "phone"
 MODE_PC = "pc"
@@ -17,15 +19,19 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Audio Synchronizer")
-        self.geometry("700x320")
-        self.minsize(500, 300)
+        self.geometry("760x620")
+        self.minsize(620, 540)
 
         self.mode = tk.StringVar(value=MODE_PHONE)
-        self.plan = None  # ostatni wynik porównania, przyda się w następnym etapie
+        self.plan = None    # ostatni wynik porównania
+        self.source = None  # Storage źródła z ostatniego porównania
+        self.target = None  # Storage celu z ostatniego porównania
+        self.note = ""      # krótkie podsumowanie akcji, pokazywane po odświeżeniu
 
         frame = ttk.Frame(self, padding=12)
         frame.pack(fill="both", expand=True)
         frame.columnconfigure(0, weight=1)
+        frame.rowconfigure(7, weight=1)  # wyniki zabierają całe wolne miejsce
 
         # wybór trybu
         mode_bar = ttk.Frame(frame)
@@ -57,6 +63,10 @@ class App(tk.Tk):
         ttk.Label(frame, textvariable=self.status).grid(
             row=6, column=0, sticky="w", pady=(8, 0)
         )
+
+        # wyniki: listy z polami wyboru
+        self.results_view = ResultsView(frame, self.on_copy, self.on_delete)
+        self.results_view.grid(row=7, column=0, sticky="nsew", pady=(12, 0))
 
         self.apply_mode()
 
@@ -145,9 +155,14 @@ class App(tk.Tk):
             messagebox.showwarning("Te same foldery", "Wybrano dwa razy ten sam folder.")
             return
 
-        source = LocalStorage(source_path)
-        target = self.build_target(target_path)
+        self.source = LocalStorage(source_path)
+        self.target = self.build_target(target_path)
+        self.note = ""
+        self.run_compare()
 
+    def run_compare(self):
+        """Porównuje self.source z self.target (też do odświeżania po akcjach)."""
+        source, target = self.source, self.target
         self.set_busy(True, "Porównuję pliki...")
         run_in_background(
             self,
@@ -159,21 +174,94 @@ class App(tk.Tk):
     def on_compare_done(self, plan):
         self.set_busy(False)
         self.plan = plan
+        self.results_view.show(plan)
         self.status.set(
-            f"Źródło: {plan.source_count}, cel: {plan.target_count} | "
+            f"{self.note}Źródło: {plan.source_count}, cel: {plan.target_count} | "
             f"do skopiowania: {len(plan.to_copy)}, nadmiarowe: {len(plan.extra)}"
         )
+        self.note = ""
 
     def on_compare_error(self, error):
         self.set_busy(False, "Błąd.")
         messagebox.showerror("Błąd porównania", str(error))
 
-    def set_busy(self, busy, message=None):
+    # --- akcje: kopiowanie i usuwanie ---
+
+    def on_copy(self, paths):
+        if not paths:
+            messagebox.showinfo("Nic nie zaznaczono", "Zaznacz pliki do skopiowania.")
+            return
+        source, target = self.source, self.target
+        self.run_action(
+            "Kopiuję",
+            work=lambda report: copy_files(source, target, paths, report),
+            done_label="Skopiowano",
+        )
+
+    def on_delete(self, paths):
+        if not paths:
+            messagebox.showinfo("Nic nie zaznaczono", "Zaznacz pliki do usunięcia.")
+            return
+        confirmed = messagebox.askyesno(
+            "Potwierdź usunięcie",
+            f"Usunąć {len(paths)} plików z folderu docelowego?\n\n"
+            "Tej operacji nie można cofnąć (pliki nie trafią do kosza).",
+            icon="warning",
+            default="no",
+        )
+        if not confirmed:
+            return
+        target = self.target
+        self.run_action(
+            "Usuwam",
+            work=lambda report: delete_files(target, paths, report),
+            done_label="Usunięto",
+        )
+
+    def run_action(self, verb, work, done_label):
+        self.set_busy(True, f"{verb}...", determinate=True)
+        run_in_background(
+            self,
+            work=work,
+            on_success=lambda result: self.on_action_done(result, done_label),
+            on_error=self.on_compare_error,
+            on_progress=lambda info: self.on_action_progress(verb, info),
+        )
+
+    def on_action_progress(self, verb, info):
+        done, total, rel = info
+        self.progress.config(maximum=total, value=done)
+        self.status.set(f"{verb} {done}/{total}: {rel}")
+
+    def on_action_done(self, result, done_label):
+        self.set_busy(False)
+        self.note = f"{done_label}: {result.done} | "
+        if result.errors:
+            shown = "\n".join(f"{rel}: {msg}" for rel, msg in result.errors[:10])
+            more = len(result.errors) - 10
+            if more > 0:
+                shown += f"\n... i {more} więcej"
+            messagebox.showwarning(
+                "Część operacji się nie powiodła",
+                f"Błędy: {len(result.errors)}\n\n{shown}",
+            )
+        self.run_compare()  # odśwież listy, żeby pokazywały stan po akcji
+
+    # --- pasek postępu i blokada przycisków ---
+
+    def set_busy(self, busy, message=None, determinate=False):
         if busy:
             self.compare_button.state(["disabled"])  # blokada przed podwójnym kliknięciem
-            self.progress.start(15)
+            self.results_view.set_enabled(False)
+            if determinate:
+                self.progress.config(mode="determinate", value=0)
+            else:
+                self.progress.config(mode="indeterminate")
+                self.progress.start(15)
         else:
-            self.compare_button.state(["!disabled"])
             self.progress.stop()
+            self.progress.config(mode="indeterminate", value=0)
+            self.compare_button.state(["!disabled"])
+            self.results_view.set_enabled(True)
         if message:
             self.status.set(message)
