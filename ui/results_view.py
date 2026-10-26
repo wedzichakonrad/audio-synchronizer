@@ -14,13 +14,13 @@ class ResultsView(ttk.Frame):
         self.notebook.pack(fill="both", expand=True)
 
         copy_tab, self.copy_list = self._build_tab(
-            checked_by_default=True, action_text="Skopiuj zaznaczone", action=on_copy
+            checked_by_default=True, action_text="Copy selected", action=on_copy
         )
         extra_tab, self.extra_list = self._build_tab(
-            checked_by_default=False, action_text="Usuń zaznaczone", action=on_delete
+            checked_by_default=False, action_text="Delete selected", action=on_delete
         )
-        self.notebook.add(copy_tab, text="Do skopiowania (0)")
-        self.notebook.add(extra_tab, text="Nadmiarowe (0)")
+        self.notebook.add(copy_tab, text="To copy (0)")
+        self.notebook.add(extra_tab, text="Extra (0)")
 
     def _build_tab(self, checked_by_default, action_text, action):
         tab = ttk.Frame(self.notebook, padding=8)
@@ -30,10 +30,10 @@ class ResultsView(ttk.Frame):
         bar = ttk.Frame(tab)
         bar.pack(fill="x", pady=(8, 0))
         select_all = ttk.Button(
-            bar, text="Zaznacz wszystko", command=lambda: check_list.set_all(True)
+            bar, text="Select all", command=lambda: check_list.set_all(True)
         )
         select_none = ttk.Button(
-            bar, text="Odznacz wszystko", command=lambda: check_list.set_all(False)
+            bar, text="Deselect all", command=lambda: check_list.set_all(False)
         )
         do_action = ttk.Button(
             bar, text=action_text, command=lambda: action(check_list.checked_paths())
@@ -48,8 +48,8 @@ class ResultsView(ttk.Frame):
     def show(self, plan):
         self.copy_list.load(plan.to_copy)
         self.extra_list.load(plan.extra)
-        self.notebook.tab(0, text=f"Do skopiowania ({len(plan.to_copy)})")
-        self.notebook.tab(1, text=f"Nadmiarowe ({len(plan.extra)})")
+        self.notebook.tab(0, text=f"To copy ({len(plan.to_copy)})")
+        self.notebook.tab(1, text=f"Extra ({len(plan.extra)})")
 
     def set_enabled(self, enabled):
         state = ["!disabled"] if enabled else ["disabled"]

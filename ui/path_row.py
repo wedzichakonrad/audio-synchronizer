@@ -14,7 +14,7 @@ class PathRow(ttk.Frame):
         ttk.Entry(self, textvariable=self._var).pack(
             side="left", fill="x", expand=True, padx=8
         )
-        ttk.Button(self, text="Wybierz...", command=on_browse).pack(side="left")
+        ttk.Button(self, text="Browse...", command=on_browse).pack(side="left")
 
     def get(self):
         return self._var.get().strip()

@@ -36,13 +36,13 @@ class App(tk.Tk):
         # wybór trybu
         mode_bar = ttk.Frame(frame)
         mode_bar.grid(row=0, column=0, sticky="w", pady=(0, 8))
-        ttk.Label(mode_bar, text="Tryb:").pack(side="left", padx=(0, 8))
+        ttk.Label(mode_bar, text="Mode:").pack(side="left", padx=(0, 8))
         ttk.Radiobutton(
-            mode_bar, text="Komputer → telefon", value=MODE_PHONE,
+            mode_bar, text="Computer → phone", value=MODE_PHONE,
             variable=self.mode, command=self.on_mode_change,
         ).pack(side="left", padx=(0, 12))
         ttk.Radiobutton(
-            mode_bar, text="Dwa foldery na komputerze", value=MODE_PC,
+            mode_bar, text="Two folders on the computer", value=MODE_PC,
             variable=self.mode, command=self.on_mode_change,
         ).pack(side="left")
 
@@ -55,11 +55,11 @@ class App(tk.Tk):
         self.target_row.grid(row=3, column=0, sticky="ew", pady=4)
 
         # przycisk, pasek postępu, status
-        self.compare_button = ttk.Button(frame, text="Porównaj", command=self.on_compare)
+        self.compare_button = ttk.Button(frame, text="Compare", command=self.on_compare)
         self.compare_button.grid(row=4, column=0, pady=(16, 0))
         self.progress = ttk.Progressbar(frame, mode="indeterminate")
         self.progress.grid(row=5, column=0, sticky="ew", pady=(12, 0))
-        self.status = tk.StringVar(value="Gotowy.")
+        self.status = tk.StringVar(value="Ready.")
         ttk.Label(frame, textvariable=self.status).grid(
             row=6, column=0, sticky="w", pady=(8, 0)
         )
@@ -79,25 +79,25 @@ class App(tk.Tk):
     def apply_mode(self):
         if self.mode.get() == MODE_PHONE:
             self.adb_row.grid()  # przywraca wiersz na swoje miejsce
-            self.source_row.set_label("Folder na komputerze:")
-            self.target_row.set_label("Folder na telefonie:")
+            self.source_row.set_label("Folder on the computer:")
+            self.target_row.set_label("Folder on the phone:")
         else:
             self.adb_row.grid_remove()  # chowa wiersz, pamiętając jego położenie
-            self.source_row.set_label("Folder źródłowy:")
-            self.target_row.set_label("Folder do porównania:")
+            self.source_row.set_label("Source folder:")
+            self.target_row.set_label("Target folder:")
 
     # --- wybór ścieżek ---
 
     def choose_adb(self):
         path = filedialog.askopenfilename(
-            title="Wskaż adb.exe",
-            filetypes=[("adb", "adb.exe"), ("Wszystkie pliki", "*.*")],
+            title="Select adb.exe",
+            filetypes=[("adb", "adb.exe"), ("All files", "*.*")],
         )
         if path:  # przy kliknięciu "Anuluj" dostajemy pusty tekst
             self.adb_row.set(path)
 
     def choose_source(self):
-        path = filedialog.askdirectory(title="Wybierz folder źródłowy na komputerze")
+        path = filedialog.askdirectory(title="Select source folder on the computer")
         if path:
             self.source_row.set(path)
 
@@ -105,7 +105,7 @@ class App(tk.Tk):
         if self.mode.get() == MODE_PHONE:
             self.choose_phone_folder()
         else:
-            path = filedialog.askdirectory(title="Wybierz drugi folder na komputerze")
+            path = filedialog.askdirectory(title="Select target folder on the computer")
             if path:
                 self.target_row.set(path)
 
@@ -114,13 +114,13 @@ class App(tk.Tk):
         try:
             devices = adb.devices()
         except AdbError as e:
-            messagebox.showerror("Błąd ADB", str(e))
+            messagebox.showerror("ADB Error", str(e))
             return
         if not any(status == "device" for _, status in devices):
             messagebox.showwarning(
-                "Brak telefonu",
-                "Nie wykryto autoryzowanego telefonu.\n"
-                "Podłącz go, odblokuj i zaakceptuj debugowanie USB.",
+                "No phone found",
+                "No authorized phone detected.\n"
+                "Connect it, unlock it, and accept USB debugging.",
             )
             return
 
@@ -143,16 +143,16 @@ class App(tk.Tk):
         pc_mode = self.mode.get() == MODE_PC
 
         if not source_path or not target_path:
-            messagebox.showwarning("Brak ścieżek", "Wybierz oba foldery.")
+            messagebox.showwarning("No paths selected", "Please select both folders.")
             return
         if not Path(source_path).is_dir():
-            messagebox.showerror("Błąd", f"Folder nie istnieje:\n{source_path}")
+            messagebox.showerror("Error", f"Folder does not exist:\n{source_path}")
             return
         if pc_mode and not Path(target_path).is_dir():
-            messagebox.showerror("Błąd", f"Folder nie istnieje:\n{target_path}")
+            messagebox.showerror("Error", f"Folder does not exist:\n{target_path}")
             return
         if pc_mode and Path(source_path).resolve() == Path(target_path).resolve():
-            messagebox.showwarning("Te same foldery", "Wybrano dwa razy ten sam folder.")
+            messagebox.showwarning("Same folders", "The same folder was selected for both source and target.")
             return
 
         self.source = LocalStorage(source_path)
@@ -163,7 +163,7 @@ class App(tk.Tk):
     def run_compare(self):
         """Porównuje self.source z self.target (też do odświeżania po akcjach)."""
         source, target = self.source, self.target
-        self.set_busy(True, "Porównuję pliki...")
+        self.set_busy(True, "Comparing files...")
         run_in_background(
             self,
             work=lambda: compare(source, target),
@@ -176,36 +176,37 @@ class App(tk.Tk):
         self.plan = plan
         self.results_view.show(plan)
         self.status.set(
-            f"{self.note}Źródło: {plan.source_count}, cel: {plan.target_count} | "
-            f"do skopiowania: {len(plan.to_copy)}, nadmiarowe: {len(plan.extra)}"
+            f"{self.note}Source: {plan.source_count}, Target: {plan.target_count} | "
+            f"to copy: {len(plan.to_copy)}, extra: {len(plan.extra)}"
         )
         self.note = ""
 
     def on_compare_error(self, error):
-        self.set_busy(False, "Błąd.")
-        messagebox.showerror("Błąd porównania", str(error))
+        self.set_busy(False, "Error.")
+        messagebox.showerror("Comparison Error", str(error))
 
     # --- akcje: kopiowanie i usuwanie ---
 
     def on_copy(self, paths):
         if not paths:
-            messagebox.showinfo("Nic nie zaznaczono", "Zaznacz pliki do skopiowania.")
+            messagebox.showinfo("No files selected", "Please select files to copy.")
             return
         source, target = self.source, self.target
         self.run_action(
-            "Kopiuję",
+            "Copying",
+
             work=lambda report: copy_files(source, target, paths, report),
-            done_label="Skopiowano",
+            done_label="Copied",
         )
 
     def on_delete(self, paths):
         if not paths:
-            messagebox.showinfo("Nic nie zaznaczono", "Zaznacz pliki do usunięcia.")
+            messagebox.showinfo("Nothing selected", "Please select files to delete.")
             return
         confirmed = messagebox.askyesno(
-            "Potwierdź usunięcie",
-            f"Usunąć {len(paths)} plików z folderu docelowego?\n\n"
-            "Tej operacji nie można cofnąć (pliki nie trafią do kosza).",
+            "Confirm deletion",
+            f"Delete {len(paths)} files from the target folder?\n\n"
+            "This operation cannot be undone (files will not go to the trash).",
             icon="warning",
             default="no",
         )
@@ -213,9 +214,9 @@ class App(tk.Tk):
             return
         target = self.target
         self.run_action(
-            "Usuwam",
+            "Deleting",
             work=lambda report: delete_files(target, paths, report),
-            done_label="Usunięto",
+            done_label="Deleted",
         )
 
     def run_action(self, verb, work, done_label):
@@ -240,10 +241,10 @@ class App(tk.Tk):
             shown = "\n".join(f"{rel}: {msg}" for rel, msg in result.errors[:10])
             more = len(result.errors) - 10
             if more > 0:
-                shown += f"\n... i {more} więcej"
+                shown += f"\n... and {more} more"
             messagebox.showwarning(
-                "Część operacji się nie powiodła",
-                f"Błędy: {len(result.errors)}\n\n{shown}",
+                "Some operations failed",
+                f"Errors: {len(result.errors)}\n\n{shown}",
             )
         self.run_compare()  # odśwież listy, żeby pokazywały stan po akcji
 

@@ -20,9 +20,9 @@ class Adb:
                 creationflags=subprocess.CREATE_NO_WINDOW,  # bez migającego okna konsoli
             )
         except FileNotFoundError:
-            raise AdbError(f"Nie znaleziono ADB pod ścieżką: {self.adb_path}")
+            raise AdbError(f"ADB not found at: {self.adb_path}")
         if proc.returncode != 0:
-            raise AdbError(proc.stderr.strip() or proc.stdout.strip() or "Nieznany błąd ADB")
+            raise AdbError(proc.stderr.strip() or proc.stdout.strip() or "Unknown ADB error")
         return proc.stdout
 
     def shell(self, command):
@@ -48,9 +48,9 @@ class Adb:
             if name == "self":
                 continue
             if name == "emulated":
-                result.append(("Pamięć wewnętrzna", "/storage/emulated/0"))
+                result.append(("Internal Storage", "/storage/emulated/0"))
             else:
-                result.append((f"Karta SD ({name})", f"/storage/{name}"))
+                result.append((f"SD Card ({name})", f"/storage/{name}"))
         return result
 
     def list_dirs(self, path):

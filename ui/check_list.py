@@ -17,7 +17,7 @@ class CheckList(ttk.Frame):
             self, columns=("mark", "path"), show="headings", selectmode="browse"
         )
         self.tree.heading("mark", text="")
-        self.tree.heading("path", text="Plik")
+        self.tree.heading("path", text="File")
         self.tree.column("mark", width=40, stretch=False, anchor="center")
         self.tree.column("path", anchor="w")
 

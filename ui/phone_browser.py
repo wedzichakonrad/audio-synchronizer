@@ -9,7 +9,7 @@ class PhoneBrowser(tk.Toplevel):
 
     def __init__(self, parent, adb: Adb):
         super().__init__(parent)
-        self.title("Wybierz folder na telefonie")
+        self.title("Select a folder on the phone")
         self.geometry("480x420")
         self.transient(parent)  # okno "należy" do głównego
         self.grab_set()         # blokuje główne okno, dopóki to nie zostanie zamknięte
@@ -38,11 +38,11 @@ class PhoneBrowser(tk.Toplevel):
 
         buttons = ttk.Frame(self)
         buttons.pack(fill="x", padx=10, pady=10)
-        self.up_button = ttk.Button(buttons, text="W górę", command=self.go_up)
+        self.up_button = ttk.Button(buttons, text="Up", command=self.go_up)
         self.up_button.pack(side="left")
-        ttk.Button(buttons, text="Anuluj", command=self.destroy).pack(side="right")
+        ttk.Button(buttons, text="Cancel", command=self.destroy).pack(side="right")
         self.select_button = ttk.Button(
-            buttons, text="Wybierz ten folder", command=self.on_select
+            buttons, text="Select this folder", command=self.on_select
         )
         self.select_button.pack(side="right", padx=(0, 8))
 
@@ -56,7 +56,7 @@ class PhoneBrowser(tk.Toplevel):
             else:
                 names = self.adb.list_dirs(path)
         except AdbError as e:
-            messagebox.showerror("Błąd ADB", str(e), parent=self)
+            messagebox.showerror("ADB Error", str(e), parent=self)
             return
 
         self.current = path
@@ -64,7 +64,7 @@ class PhoneBrowser(tk.Toplevel):
         self.listbox.delete(0, "end")
         for name in names:
             self.listbox.insert("end", name)
-        self.path_label.config(text=path or "Wybierz pamięć telefonu")
+        self.path_label.config(text=path or "Select phone storage")
 
         state = ["disabled"] if path is None else ["!disabled"]
         self.up_button.state(state)
